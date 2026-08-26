@@ -1,0 +1,4 @@
+-r base.txt
+
+gunicorn>=23,<24
+uvicorn[standard]>=0.34,<1
