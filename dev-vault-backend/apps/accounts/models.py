@@ -39,6 +39,10 @@ class User(AbstractUser, BaseModel):
         verbose_name_plural = 'users'
         
     @property
+    def email_is_verified(self) -> bool:
+        return self.email_verified_at is not None
+        
+    @property
     def can_authenticate(self) -> bool:
         return self.is_active and self.status == self.Status.ACTIVE
     
@@ -87,7 +91,7 @@ class RefreshTokenSession(BaseModel):
         
     @property
     def is_revoked(self) -> bool:
-        return self.revoked_at <= timezone.now()
+        return self.revoked_at is not None
 
     @property
     def is_expired(self) -> bool:

@@ -7,6 +7,8 @@ from apps.accounts.models import RefreshTokenSession, User
 
 @admin.register(User)
 class DevVaultUserAdmin(UserAdmin):
+    ordering = ("email",)
+        
     list_display = (
         'email',
         'status',
