@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verify your email | DevVault</title>
+  <style nonce="{{ nonce }}">
+    body { background: #f4f7fb; color: #16233b; font: 18px/1.6 system-ui, sans-serif;
+           margin: 0; padding: 8vh 24px; }
+    main { max-width: 520px; margin: auto; padding: 32px; background: white;
+           border: 1px solid #dde5ee; border-radius: 16px; }
+    h1 { line-height: 1.2; }
+    button { font: inherit; background: #173f80; color: white; border: 0;
+             padding: 12px 24px; border-radius: 8px; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: default; }
+  </style>
+</head>
+<body>
+  <main>
+    <p>DEVVAULT</p>
+    <h1>Verify your email</h1>
+    <p id="result" role="status" aria-live="polite">Confirm that this email address belongs to you.</p>
+    <button id="verify" type="button" disabled>Verify email</button>
+    <noscript>Enable JavaScript to verify your email using this page.</noscript>
+  </main>
+  <script nonce="{{ nonce }}">
+    (() => {
+      const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
+      const endpoint = window.location.pathname;
+      window.history.replaceState(null, "", endpoint);
+      const button = document.getElementById("verify");
+      const result = document.getElementById("result");
+      if (!token) {
+        result.textContent = "Open the verification link from your email to continue.";
+        return;
+      }
+      button.disabled = false;
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        result.textContent = "Verifying your email…";
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            credentials: "omit",
+            headers: {"Content-Type": "application/json", "Accept": "application/json"},
+            body: JSON.stringify({token}),
+          });
+          const data = await response.json();
+          result.textContent = response.ok ? data.message :
+            (data.error?.message || "Verification failed. Request a new link.");
+          if (!response.ok) button.disabled = false;
+        } catch {
+          result.textContent = "Could not reach DevVault. Please try again.";
+          button.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -13,13 +13,17 @@ SENSITIVE_KEYS = frozenset(
         "authorization",
         "cookie",
         "password",
+        "password_confirmation",
+        "verification_token",
         "refresh_token",
+        "access_token",
         "secret",
         "set_cookie",
         "token",
     }
 )
 SECRET_PATTERNS = (
+    re.compile(r"\bdv_verify_[A-Za-z0-9_:%-]+"),
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+"),
     re.compile(r"\bdv_(?:test|live)_[A-Za-z0-9_-]+_[A-Za-z0-9_-]+\b"),
     re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),

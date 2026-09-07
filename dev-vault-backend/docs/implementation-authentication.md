@@ -1,0 +1,166 @@
+# Accounts stage 4 implementation report
+
+Completed 2026-09-07 in
+`C:\Users\Israel Chukwu\Desktop\dev-vault\dev-vault-backend`.
+
+## Result
+
+Implemented login, short-lived access JWTs, server-tracked refresh rotation,
+replay-triggered revocation, logout and default Bearer authentication for dashboard
+API endpoints. Login requires an active, verified user. Added safe errors, response
+cache controls, per-IP Redis limits, account audit events, token redaction and
+transaction/concurrency tests. Registration and login share a 1,024-character
+password limit.
+
+The private `.env`, existing user data, custom user-model choice and previous
+migration history were preserved. No development database was recreated and no
+database-role privileges were increased. The pre-existing parent
+`.vscode/settings.json` change was left alone. No empty folders were added.
+
+## Existing files changed in this stage (16)
+
+Paths are relative to the project root above; some files were created in the prior
+email-verification stage and were still uncommitted when this work began.
+
+- `.env.example`: documented signing key, issuer, audience and lifetimes; no real secrets.
+- `README.md`: authentication status, local setup, dependency and next-stage guidance.
+- `requirements/base.txt`: added `PyJWT>=2.13,<3`.
+- `api/v1/accounts/serializers.py`: login/refresh validation, safe token output and password bounds.
+- `api/v1/accounts/urls.py`: login, refresh and logout routes.
+- `api/v1/accounts/views.py`: thin HTTP adapters and no-store/401 response headers.
+- `apps/accounts/checks.py`: signing-key, issuer/audience and lifetime checks.
+- `apps/accounts/exceptions.py`: generic credential and token errors.
+- `apps/accounts/models.py`: session credential-state hash, without changing User schema.
+- `apps/accounts/tests/test_registration_api.py`: oversized-password regression test.
+- `apps/audit/models.py`: nullable target for unknown-user login failures.
+- `apps/audit/services.py`: failure outcomes and optional target/actor IDs.
+- `apps/core/logging.py`: access-token field redaction.
+- `config/settings/base.py`: JWT defaults, dashboard authentication and throttle scopes.
+- `config/settings/production.py`: require an explicit production JWT signing key.
+- `docs/api/email-verification.md`: point to implemented login and updated test guidance.
+
+## Files created in this stage (10)
+
+- `api/v1/accounts/authentication.py`
+- `apps/accounts/auth_services.py`
+- `apps/accounts/jwt.py`
+- `apps/accounts/migrations/0004_refreshtokensession_credential_hash.py`
+- `apps/accounts/tests/test_authentication.py`
+- `apps/accounts/tests/test_redis_throttling.py`
+- `apps/audit/migrations/0002_alter_auditlog_target_id.py`
+- `docs/adr/0002-dashboard-sessions.md`
+- `docs/api/authentication.md`
+- `docs/implementation-authentication.md` (this report)
+
+## Verification and environment changes
+
+- Fast SQLite suite: **86 passed, 5 skipped**. The skips are four PostgreSQL locking
+  tests and one opt-in real Redis test.
+- Full PostgreSQL + Redis suite: **91 passed, no skips**, including refresh/replay,
+  refresh/logout races and concurrent Redis counter enforcement.
+- The first integration run had 90 passes and one Redis connection failure because
+  Docker Desktop was stopped. After starting Docker and Redis, the complete suite
+  passed. This was not bypassed with a memory-cache substitute.
+- Django checks pass in development and test settings; dependency check passes.
+- Model/migration consistency: no changes missing migrations.
+- Changed/new Python code passes Ruff. A wider repository check found one existing
+  import-order warning in untouched `api/v1/urls.py`; it was left outside this stage.
+- `git diff --check` passes. Git reports existing Windows line-ending conversion
+  warnings, not whitespace errors.
+- Applied and verified `accounts.0004_refreshtokensession_credential_hash` and
+  `audit.0002_alter_auditlog_target_id` in the real local development database.
+- Development health requests through Django's API test client: liveness HTTP 200
+  `{"status":"ok"}` and readiness HTTP 200 `{"status":"ready"}` using the actual
+  development PostgreSQL and Redis configuration. No real login account was created
+  by the smoke check.
+- PyJWT 2.13.0 was installed in the existing virtual environment.
+- Docker Desktop was started. `docker compose up -d redis` recreated/started the
+  project's Redis container using its existing named volume; `redis-cli ping`
+  returned `PONG`. No Redis volume was removed or database flushed. Docker/Redis
+  were left running for local use; the Compose PostgreSQL service was not started.
+- Concurrency tests used a separate PostgreSQL 18 cluster on loopback port 55439,
+  not the development database. Its test-only role was `authentication_test` and
+  its database was `test_devvault_email_verification`. After testing, this cluster
+  was stopped and its temporary directory permanently deleted. Only disposable
+  test data/logs were removed; they can be regenerated by rerunning the tests.
+
+## Implementation and verification commands run
+
+Commands below used the existing project virtual environment. Some checks were
+repeated after fixes and after Docker startup. Python/Docker execution required
+the tool's approved execution permissions; private environment values were never
+printed. Source files were inspected with `Get-Content`, `rg`, `Get-ChildItem` and
+`git status --short`/`git diff`; edits were made with patches and Ruff formatting.
+
+```powershell
+.\venv\Scripts\python.exe -m pip install "PyJWT>=2.13,<3"
+.\venv\Scripts\python.exe -B manage.py makemigrations accounts audit --settings=config.settings.test
+.\venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+.\venv\Scripts\python.exe -B manage.py check --settings=config.settings.test
+.\venv\Scripts\python.exe -m pip check
+
+.\venv\Scripts\python.exe -m ruff format apps/accounts/auth_services.py apps/accounts/jwt.py apps/accounts/checks.py apps/accounts/tests/test_authentication.py apps/accounts/tests/test_redis_throttling.py apps/accounts/tests/test_registration_api.py api/v1/accounts/authentication.py api/v1/accounts/serializers.py api/v1/accounts/views.py api/v1/accounts/urls.py apps/accounts/models.py apps/accounts/exceptions.py apps/audit/models.py apps/audit/services.py config/settings/base.py config/settings/production.py apps/core/logging.py
+.\venv\Scripts\python.exe -m ruff check --no-cache apps/accounts/auth_services.py apps/accounts/jwt.py apps/accounts/checks.py apps/accounts/tests/test_authentication.py apps/accounts/tests/test_redis_throttling.py apps/accounts/tests/test_registration_api.py api/v1/accounts apps/accounts/models.py apps/accounts/exceptions.py apps/audit config/settings/base.py config/settings/production.py apps/core/logging.py
+.\venv\Scripts\python.exe -m ruff check --no-cache apps api config
+git diff --check
+
+$env:TEST_DATABASE_URL='postgresql://authentication_test@127.0.0.1:55439/postgres'
+$env:TEST_REDIS_URL='redis://127.0.0.1:6379/0'
+.\venv\Scripts\python.exe -m pytest --ds=config.settings.postgresql_test_settings --create-db -q -p no:cacheprovider
+
+$env:DJANGO_READ_ENV_FILE='true'
+.\venv\Scripts\python.exe -B manage.py check
+.\venv\Scripts\python.exe -B manage.py makemigrations --check --dry-run
+.\venv\Scripts\python.exe -B manage.py migrate --plan
+.\venv\Scripts\python.exe -B manage.py migrate --noinput
+.\venv\Scripts\python.exe -B manage.py showmigrations accounts audit
+.\venv\Scripts\python.exe -B manage.py migrate --check
+.\venv\Scripts\python.exe -B manage.py shell -c "from apps.core.health import get_readiness_status; print(get_readiness_status())"
+.\venv\Scripts\python.exe -B manage.py shell -c "from rest_framework.test import APIClient; c=APIClient(); print([(p, (r:=c.get(p, HTTP_HOST='localhost')).status_code, r.json()) for p in ['/api/v1/health/live/', '/api/v1/health/ready/']])"
+```
+
+Docker checks/startup commands:
+
+```powershell
+docker compose ps redis
+docker compose exec -T redis redis-cli ping
+docker desktop --help
+docker desktop start
+docker desktop status
+Get-Command docker
+Start-Process -FilePath 'C:\Users\Israel Chukwu\AppData\Local\Programs\DockerDesktop\Docker Desktop.exe' -WindowStyle Hidden
+docker compose up -d redis
+docker compose exec -T redis redis-cli ping
+```
+
+An earlier attempt to locate/start Docker under `C:\Program Files\Docker\Docker`
+failed because it is installed per-user. Process/port and recent Docker log-file
+metadata checks were used to confirm startup. No Docker reset, reinstall or
+virtualization/Windows feature changes were made.
+
+Temporary PostgreSQL lifecycle (the cluster was initialized during the first part
+of this stage, stopped at the user's pause, and restarted on continuation):
+
+```powershell
+& 'C:\Program Files\PostgreSQL\18\bin\initdb.exe' -D 'C:\Users\Israel Chukwu\Documents\Codex\2026-08-26\referenced-chatgpt-conversation-this-is-an\pg-authentication-test' -U authentication_test --encoding=UTF8 --no-locale --auth=trust
+& 'C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe' -D 'C:\Users\Israel Chukwu\Documents\Codex\2026-08-26\referenced-chatgpt-conversation-this-is-an\pg-authentication-test' -l 'C:\Users\Israel Chukwu\Documents\Codex\2026-08-26\referenced-chatgpt-conversation-this-is-an\pg-authentication-test\server.log' -o '-p 55439 -h 127.0.0.1' -w start
+& 'C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe' -D 'C:\Users\Israel Chukwu\Documents\Codex\2026-08-26\referenced-chatgpt-conversation-this-is-an\pg-authentication-test' -m fast -w stop
+```
+
+Cleanup resolved the exact test directory, checked that it was the intended child
+of the task workspace and that `postmaster.pid` no longer existed, then used
+`Remove-Item -LiteralPath $testClusterPath -Recurse -Force`. `Test-Path` confirmed
+the temporary directory was gone. Do not copy this cleanup against other paths.
+
+## Next step and limits
+
+Accounts stage 5: current-user/profile endpoints, password change and password
+reset, with session invalidation, auditing and dedicated tests. Stage 6 remains
+the broader account-security regression pass; security tests already accompany
+each implemented stage.
+
+The login/refresh/logout stage does not include a frontend, `/me/`, password-reset
+emails, MFA/SSO, API-key authentication or production deployment. See the
+[authentication guide](api/authentication.md) and
+[session ADR](adr/0002-dashboard-sessions.md) for replay handling, independent
+production secrets, proxy/rate-limit caveats and remaining hardening work.

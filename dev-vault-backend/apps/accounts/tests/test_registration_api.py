@@ -11,6 +11,24 @@ def api_client() -> APIClient:
 
 
 @pytest.mark.django_db
+def test_registration_rejects_passwords_exceeding_login_limit(api_client: APIClient) -> None:
+    password = "Long-Password-123!" + "x" * 1024
+    response = api_client.post(
+        reverse("accounts:register"),
+        data={
+            "email": "oversized@example.com",
+            "password": password,
+            "password_confirmation": password,
+        },
+        format="json",
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "validation_error"
+    assert not User.objects.filter(email="oversized@example.com").exists()
+    assert password not in str(response.json())
+
+
+@pytest.mark.django_db
 def test_registration_creates_pending_user(api_client: APIClient) -> None:
     response = api_client.post(
         reverse("accounts:register"),

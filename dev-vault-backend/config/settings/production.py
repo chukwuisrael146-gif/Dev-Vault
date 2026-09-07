@@ -6,11 +6,15 @@ from config.settings.base import *
 
 required_environment = (
     "DJANGO_SECRET_KEY",
+    "ACCOUNT_JWT_SIGNING_KEY",
     "DJANGO_ALLOWED_HOSTS",
     "DATABASE_URL",
     "REDIS_URL",
     "CELERY_BROKER_URL",
     "CELERY_RESULT_BACKEND",
+    "ACCOUNT_PUBLIC_BASE_URL",
+    "DEFAULT_FROM_EMAIL",
+    "EMAIL_HOST",
 )
 missing_environment = [name for name in required_environment if not os.environ.get(name)]
 if missing_environment:

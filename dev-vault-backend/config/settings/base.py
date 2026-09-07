@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 import environ
@@ -27,6 +28,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "apps.core",
     "apps.accounts",
+    "apps.audit",
 ]
 
 MIDDLEWARE = [
@@ -91,6 +93,13 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_SOFT_TIME_LIMIT = 300
 CELERY_TASK_TIME_LIMIT = 330
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BEAT_SCHEDULE = {
+    "deliver-account-verification-emails": {
+        "task": "apps.accounts.tasks.deliver_pending_verifications",
+        "schedule": 30.0,
+        "options": {"expires": 30},
+    },
+}
 
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS = [
@@ -103,8 +112,39 @@ AUTH_PASSWORD_VALIDATORS = [
 MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": env("EMAIL_HOST", default="localhost"),
+            "port": env.int("EMAIL_PORT", default=587),
+            "username": env("EMAIL_HOST_USER", default=""),
+            "password": env("EMAIL_HOST_PASSWORD", default=""),
+            "use_tls": env.bool("EMAIL_USE_TLS", default=True),
+            "use_ssl": env.bool("EMAIL_USE_SSL", default=False),
+            "timeout": 10,
+        },
     }
 }
+
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="DevVault <noreply@devvault.local>")
+ACCOUNT_PUBLIC_BASE_URL = env("ACCOUNT_PUBLIC_BASE_URL", default="http://127.0.0.1:8000")
+EMAIL_VERIFICATION_TTL_SECONDS = env.int("EMAIL_VERIFICATION_TTL_SECONDS", default=1800)
+EMAIL_VERIFICATION_RESEND_SECONDS = env.int("EMAIL_VERIFICATION_RESEND_SECONDS", default=60)
+ACCOUNT_THROTTLE_RATES = {
+    "login": (20, 300),
+    "refresh": (60, 60),
+    "logout": (60, 60),
+    "register": (10, 3600),
+    "verify_email": (30, 60),
+    "resend_verification": (10, 3600),
+}
+
+ACCOUNT_JWT_SIGNING_KEY = (
+    env("ACCOUNT_JWT_SIGNING_KEY", default="")
+    or hashlib.sha256(f"devvault.jwt.development:{SECRET_KEY}".encode()).hexdigest()
+)
+ACCOUNT_JWT_ISSUER = env("ACCOUNT_JWT_ISSUER", default="devvault")
+ACCOUNT_JWT_AUDIENCE = env("ACCOUNT_JWT_AUDIENCE", default="devvault-dashboard")
+ACCOUNT_ACCESS_TOKEN_SECONDS = env.int("ACCOUNT_ACCESS_TOKEN_SECONDS", default=300)
+ACCOUNT_REFRESH_TOKEN_SECONDS = env.int("ACCOUNT_REFRESH_TOKEN_SECONDS", default=604800)
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -116,7 +156,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["api.v1.accounts.authentication.DashboardJWTAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.DefaultCursorPagination",
     "PAGE_SIZE": 50,
