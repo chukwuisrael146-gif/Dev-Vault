@@ -7,6 +7,8 @@ from config.settings.base import *
 required_environment = (
     "DJANGO_SECRET_KEY",
     "ACCOUNT_JWT_SIGNING_KEY",
+    "API_KEY_PEPPERS",
+    "WEBHOOK_ENCRYPTION_KEYS",
     "DJANGO_ALLOWED_HOSTS",
     "DATABASE_URL",
     "REDIS_URL",
@@ -23,6 +25,10 @@ if missing_environment:
     )
 
 DEBUG = False
+if not env.json("API_KEY_PEPPERS", default={}):
+    raise ImproperlyConfigured("Production requires independently generated API key peppers.")
+if not env.json("WEBHOOK_ENCRYPTION_KEYS", default=[]):
+    raise ImproperlyConfigured("Production requires independent webhook encryption keys.")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
 SESSION_COOKIE_SECURE = True

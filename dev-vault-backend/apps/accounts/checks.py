@@ -8,6 +8,8 @@ from django.core.checks import Error, register
 def check_verification_settings(app_configs, **kwargs):
     errors = []
     url = urlsplit(settings.ACCOUNT_PUBLIC_BASE_URL)
+    if not 60 <= settings.PASSWORD_RESET_TTL_SECONDS <= 3600:
+        errors.append(Error("Password reset lifetime must be 60–3600 seconds.", id="accounts.E010"))
     if (
         url.scheme not in {"http", "https"}
         or not url.hostname

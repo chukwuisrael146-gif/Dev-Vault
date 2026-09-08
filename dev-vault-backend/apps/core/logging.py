@@ -10,20 +10,32 @@ REDACTED = "[REDACTED]"
 SENSITIVE_KEYS = frozenset(
     {
         "api_key",
+        "raw_key",
+        "raw_value",
+        "integration_credential",
+        "x_devvault_service_token",
         "authorization",
         "cookie",
         "password",
+        "new_password",
+        "current_password",
         "password_confirmation",
         "verification_token",
         "refresh_token",
         "access_token",
         "secret",
+        "encrypted_secret",
+        "metrics_token",
+        "webhook_encryption_keys",
+        "api_key_peppers",
         "set_cookie",
         "token",
     }
 )
 SECRET_PATTERNS = (
-    re.compile(r"\bdv_verify_[A-Za-z0-9_:%-]+"),
+    re.compile(r"\bwhsec_[A-Za-z0-9_-]+"),
+    re.compile(r"\bdvs_[A-Za-z0-9_-]+"),
+    re.compile(r"\bdv_(?:verify|reset|invite)_[A-Za-z0-9_:%-]+"),
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+"),
     re.compile(r"\bdv_(?:test|live)_[A-Za-z0-9_-]+_[A-Za-z0-9_-]+\b"),
     re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),

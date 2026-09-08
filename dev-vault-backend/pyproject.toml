@@ -1,6 +1,7 @@
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
+pythonpath = ["integrations/python"]
 addopts = "--strict-markers --reuse-db"
 
 [tool.ruff]
@@ -13,6 +14,8 @@ select = ["E", "F", "I", "UP", "B", "SIM", "DJ"]
 
 [tool.ruff.lint.per-file-ignores]
 "config/settings/*.py" = ["F403", "F405"]
+# pytest discovers imported fixtures by name; test function arguments intentionally shadow them.
+"apps/**/tests/*.py" = ["F811"]
 
 [tool.coverage.run]
 branch = true

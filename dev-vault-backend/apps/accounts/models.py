@@ -141,3 +141,29 @@ class EmailVerificationToken(BaseModel):
 
     def __str__(self) -> str:
         return f"Email verification {self.id}"
+
+
+class PasswordResetRequest(BaseModel):
+    """Durable single-use reference; the signed bearer token is never persisted."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    invalidated_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    delivery_attempts = models.PositiveSmallIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now)
+    credential_hash = models.CharField(max_length=64, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user",),
+                condition=models.Q(consumed_at__isnull=True, invalidated_at__isnull=True),
+                name="acct_one_open_password_reset",
+            ),
+        ]
+        indexes = [models.Index(fields=("sent_at", "next_attempt_at"))]
+
+    def __str__(self):
+        return f"Password reset {self.id}"

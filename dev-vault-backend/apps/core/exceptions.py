@@ -21,3 +21,27 @@ class DomainError(Exception):
         self.message = message or self.message
         self.details = dict(details or {})
         super().__init__(self.message)
+
+
+class NotFoundError(DomainError):
+    code = "not_found"
+    message = "The requested resource was not found."
+    status_code = HTTPStatus.NOT_FOUND
+
+
+class ForbiddenError(DomainError):
+    code = "permission_denied"
+    message = "You do not have permission to perform this action."
+    status_code = HTTPStatus.FORBIDDEN
+
+
+class ConflictError(DomainError):
+    code = "conflict"
+    message = "The requested operation conflicts with the current resource state."
+    status_code = HTTPStatus.CONFLICT
+
+
+class DependencyUnavailableError(DomainError):
+    code = "service_unavailable"
+    message = "A required service is temporarily unavailable."
+    status_code = HTTPStatus.SERVICE_UNAVAILABLE

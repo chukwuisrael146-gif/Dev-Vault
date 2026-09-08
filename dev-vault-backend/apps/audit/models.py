@@ -2,6 +2,8 @@ import uuid
 
 from django.db import models
 
+from apps.core.models import ExportJobBase
+
 
 class AppendOnlyQuerySet(models.QuerySet):
     def update(self, **kwargs):
@@ -12,6 +14,26 @@ class AppendOnlyQuerySet(models.QuerySet):
 
     def bulk_update(self, objs, fields, batch_size=None):
         raise TypeError("Audit records are append-only")
+
+    def bulk_create(
+        self,
+        objs,
+        batch_size=None,
+        ignore_conflicts=False,
+        update_conflicts=False,
+        update_fields=None,
+        unique_fields=None,
+    ):
+        if update_conflicts:
+            raise TypeError("Audit records are append-only")
+        return super().bulk_create(
+            objs,
+            batch_size=batch_size,
+            ignore_conflicts=ignore_conflicts,
+            update_conflicts=False,
+            update_fields=update_fields,
+            unique_fields=unique_fields,
+        )
 
 
 class AuditLog(models.Model):
@@ -25,6 +47,10 @@ class AuditLog(models.Model):
     target_id = models.UUIDField(null=True)
     outcome = models.CharField(max_length=32, default="success")
     request_id = models.CharField(max_length=128, blank=True)
+    organization_id = models.UUIDField(null=True, db_index=True)
+    changes = models.JSONField(default=dict, blank=True)
+    actor_type = models.CharField(max_length=16, default="user")
+    source_ip = models.GenericIPAddressField(null=True)
 
     objects = AppendOnlyQuerySet.as_manager()
 
@@ -46,3 +72,7 @@ class AuditLog(models.Model):
 
     def delete(self, *args, **kwargs):
         raise TypeError("Audit records are append-only")
+
+
+class AuditExport(ExportJobBase):
+    pass

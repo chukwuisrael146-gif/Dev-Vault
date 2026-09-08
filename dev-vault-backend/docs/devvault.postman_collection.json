@@ -1,0 +1,579 @@
+{
+  "info": {
+    "name": "DevVault v1 starter workflow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Use private local variables; never export live tokens. Change operation_id for each new operation; preserve it only for an exact retry. Copy newly issued secrets immediately. Full API is in openapi.yaml."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "verification_token",
+      "value": ""
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "organization_id",
+      "value": ""
+    },
+    {
+      "key": "project_id",
+      "value": ""
+    },
+    {
+      "key": "environment_id",
+      "value": ""
+    },
+    {
+      "key": "service_id",
+      "value": ""
+    },
+    {
+      "key": "permission_id",
+      "value": ""
+    },
+    {
+      "key": "key_id",
+      "value": ""
+    },
+    {
+      "key": "api_key",
+      "value": ""
+    },
+    {
+      "key": "integration_secret",
+      "value": ""
+    },
+    {
+      "key": "operation_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1 Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/register/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"password_confirmation\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "2 Verify email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/verify-email/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{verification_token}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "3 Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "4 Current user",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/me/"
+      }
+    },
+    {
+      "name": "5 Create organization",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/organizations/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My organization\",\n  \"slug\": \"my-organization\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "6 Create project",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/organizations/{{organization_id}}/projects/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Orders API\",\n  \"slug\": \"orders\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "7 List environments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/projects/{{project_id}}/environments/"
+      }
+    },
+    {
+      "name": "8 Create API service",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/environments/{{environment_id}}/services/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Orders\",\n  \"slug\": \"orders\",\n  \"audience\": \"orders-api\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "9 Create permission",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/services/{{service_id}}/permissions/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"orders:read\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "10 Create rate policy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/organizations/{{organization_id}}/policies/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Per-key limit\",\n  \"environment_kind\": \"test\",\n  \"service_id\": \"{{service_id}}\",\n  \"algorithm\": \"fixed_window\",\n  \"dimension\": \"key\",\n  \"config\": {\n    \"limit\": 60,\n    \"window_seconds\": 60\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "11 Create quota",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/organizations/{{organization_id}}/policies/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Daily quota\",\n  \"environment_kind\": \"test\",\n  \"service_id\": \"{{service_id}}\",\n  \"algorithm\": \"daily\",\n  \"dimension\": \"key\",\n  \"config\": {\n    \"limit\": 1000\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "12 Issue consumer key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/environments/{{environment_id}}/keys/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test consumer\",\n  \"service_id\": \"{{service_id}}\",\n  \"permission_ids\": [\n    \"{{permission_id}}\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "13 Issue server integration credential",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/services/{{service_id}}/integration-credentials/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My API backend\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "14 Verify consumer access",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_key}}"
+          },
+          {
+            "key": "X-DevVault-Service-Token",
+            "value": "{{integration_secret}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/access/verify/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"service_id\": \"{{service_id}}\",\n  \"environment\": \"test\",\n  \"audience\": \"orders-api\",\n  \"required_scopes\": [\n    \"orders:read\"\n  ],\n  \"units\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "15 Usage",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/organizations/{{organization_id}}/usage/"
+      }
+    },
+    {
+      "name": "16 Audit logs",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/organizations/{{organization_id}}/audit-logs/"
+      }
+    },
+    {
+      "name": "17 Rotate key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{operation_id}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/keys/{{key_id}}/rotate/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"confirm\": true,\n  \"overlap_seconds\": 0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "18 Revoke key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/keys/{{key_id}}/revoke/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"confirm\": true,\n  \"reason\": \"retired\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "19 Refresh session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/refresh/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "20 Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/logout/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

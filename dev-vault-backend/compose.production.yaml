@@ -1,0 +1,47 @@
+# Explicit opt-in production topology. PostgreSQL/Redis/SMTP are externally configured.
+# Never uses a development .env implicitly. Run controlled migrations before starting replicas.
+x-backend: &backend
+  image: ${DEVVAULT_IMAGE:-devvault-backend:local}
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  env_file:
+    - ${DEVVAULT_ENV_FILE:?Set DEVVAULT_ENV_FILE to a reviewed production environment file}
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings.production
+    DJANGO_READ_ENV_FILE: "False"
+  init: true
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp
+  volumes:
+    - devvault_exports:/app/var/exports
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  web:
+    <<: *backend
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_READ_ENV_FILE: "False"
+      PROMETHEUS_MULTIPROC_DIR: /tmp/devvault-prometheus
+    ports:
+      - "127.0.0.1:8000:8000"
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "config", "worker", "--loglevel=INFO", "--concurrency=2"]
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "config", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+  migrate:
+    <<: *backend
+    profiles: ["maintenance"]
+    restart: "no"
+    command: ["python", "manage.py", "migrate", "--noinput"]
+
+volumes:
+  devvault_exports:
