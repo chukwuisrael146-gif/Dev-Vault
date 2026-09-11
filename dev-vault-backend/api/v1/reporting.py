@@ -1,11 +1,13 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Avg, Count, Sum
 from django.db.models.functions import TruncDay, TruncHour
 from django.http import FileResponse
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,7 +16,7 @@ from apps.audit.models import AuditExport, AuditLog
 from apps.audit.selectors import logs_for
 from apps.audit.services import record_event
 from apps.core.exceptions import ConflictError, NotFoundError
-from apps.core.exports import export_path
+from apps.core.export_storage import open_export
 from apps.core.idempotency import creation_command, remember_created
 from apps.organizations.selectors import get_organization
 from apps.usage.models import UsageEvent, UsageExport
@@ -222,6 +224,7 @@ class ExportJobsView(APIView):
                 actor_id=request.user.id,
                 filters=filters,
                 expires_at=timezone.now() + timedelta(hours=24),
+                storage_backend=settings.EXPORT_STORAGE_BACKEND,
             )
             record_event(
                 action=f"{self.capability}.export_requested",
@@ -258,9 +261,14 @@ class ExportView(APIView):
             return Response({"data": job_output(job)})
         if job.status != "ready" or job.expires_at <= timezone.now():
             raise ConflictError(message="This export is not available for download.")
-        path = export_path(job)
-        if not path.is_file() or path.is_symlink():
-            raise NotFoundError(message="The export file is unavailable.")
+        try:
+            stream = open_export(job)
+        except FileNotFoundError:
+            raise NotFoundError(message="The export file is unavailable.") from None
+        except (OSError, ValueError):
+            error = APIException("Export storage is temporarily unavailable.", code="export_storage_unavailable")
+            error.status_code = 503
+            raise error from None
         record_event(
             action=f"{self.capability}.export_downloaded",
             actor_id=request.user.id,
@@ -269,7 +277,7 @@ class ExportView(APIView):
             target_type=self.model._meta.label,
         )
         return FileResponse(
-            path.open("rb"),
+            stream,
             as_attachment=True,
             filename=f"devvault-{self.capability}-{job.id}.csv",
             content_type="text/csv",

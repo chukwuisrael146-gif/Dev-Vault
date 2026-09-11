@@ -6,10 +6,17 @@ is a 20-request starter, not every API endpoint.
 
 ## Browser setup and sessions
 
-Add your exact frontend origin to the existing private `.env`, for example
-`CORS_ALLOWED_ORIGINS=http://localhost:5173`, and restart Django. `localhost` and
-`127.0.0.1` are different origins. Do not use wildcard origins. Authentication uses
-Authorization headers, not cross-origin cookies.
+The adjacent React frontend is now API-backed. Run Django at `127.0.0.1:8000`
+and Vite at `127.0.0.1:5173`; Vite proxies `/api` and preserves the host for
+pagination. This same-origin development setup needs no CORS change. See the
+[frontend runbook](../../dev-vault-frontend/README.md) for connected screens,
+remaining API-only operations and the isolated browser-to-Django test.
+
+For separately hosted frontends, set public build-time `VITE_API_BASE_URL` to the
+backend HTTPS `/api/v1/` URL, then add the exact frontend HTTPS origin to backend
+`CORS_ALLOWED_ORIGINS` and restart Django. `localhost` and `127.0.0.1` are different
+origins. Do not use wildcards. Authentication uses Authorization headers, not
+cross-origin cookies. The Vite development proxy is not included in hosted builds.
 
 1. Register, deliver/preview the local verification email, and confirm the token.
 2. Log in; keep the access/refresh pair private. Send `Authorization: Bearer

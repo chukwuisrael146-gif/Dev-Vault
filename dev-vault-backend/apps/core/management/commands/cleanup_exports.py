@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.models import AuditExport
-from apps.core.exports import export_path
+from apps.core.export_storage import delete_export
 from apps.usage.models import UsageExport
 
 
@@ -34,7 +34,7 @@ class Command(BaseCommand):
                     if job.expires_at > timezone.now() or job.status == "expired":
                         continue
                     try:
-                        export_path(job).unlink(missing_ok=True)
+                        delete_export(job)
                     except (OSError, ValueError) as exc:
                         raise CommandError(
                             "Export cleanup refused an unsafe/unavailable path."

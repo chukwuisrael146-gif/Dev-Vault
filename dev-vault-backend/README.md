@@ -86,6 +86,11 @@ Health endpoints: `/api/v1/health/live/` and `/api/v1/health/ready/`.
 
 ## Frontend and background work
 
+For real registration and password-reset delivery, see [account email setup](docs/email-delivery.md).
+Development saves emails to files unless `DJANGO_EMAIL_MODE=smtp` is explicitly configured.
+`check_email_connection` checks SMTP without sending; `deliver_account_emails --watch`
+processes both account queues locally. A queued response is not proof of inbox delivery.
+
 Start with [the frontend integration guide](docs/frontend-integration.md).
 The complete [OpenAPI contract](docs/openapi.yaml) is also available at
 `/api/v1/schema/`; browse `/api/v1/docs/` after starting the server.

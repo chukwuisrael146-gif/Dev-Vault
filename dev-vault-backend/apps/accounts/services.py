@@ -72,7 +72,8 @@ def request_email_verification(*, email: str) -> None:
         User.objects.select_for_update()
         .filter(
             email=UserManager.normalize_email_address(email),
-            status=User.Status.PENDING_VERIFICATION,
+            # Older/admin-created users may be active without a verified address.
+            status__in=(User.Status.PENDING_VERIFICATION, User.Status.ACTIVE),
             is_active=True,
             email_verified_at__isnull=True,
         )
@@ -116,7 +117,7 @@ def verify_email(*, token: str) -> User:
         or verification.expires_at <= now
         or verification.email != user.email
         or not user.is_active
-        or user.status != User.Status.PENDING_VERIFICATION
+        or user.status not in (User.Status.PENDING_VERIFICATION, User.Status.ACTIVE)
         or user.email_verified_at is not None
     ):
         raise InvalidEmailVerificationError()
@@ -159,7 +160,7 @@ def deliver_verification_email(*, verification_id: UUID) -> bool:
     if (
         verification.email != user.email
         or not user.is_active
-        or user.status != User.Status.PENDING_VERIFICATION
+        or user.status not in (User.Status.PENDING_VERIFICATION, User.Status.ACTIVE)
         or user.email_verified_at is not None
     ):
         verification.invalidated_at = now

@@ -39,6 +39,7 @@ class ExportJobBase(BaseModel):
     row_count = models.PositiveIntegerField(default=0)
     failure_code = models.CharField(max_length=32, blank=True)
     expires_at = models.DateTimeField()
+    storage_backend = models.CharField(max_length=8, default="local", choices=(("local", "Local"), ("s3", "S3")))
 
     class Meta:
         abstract = True

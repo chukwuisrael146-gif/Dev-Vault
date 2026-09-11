@@ -41,11 +41,11 @@ def test_expired_exports_cleanup_is_explicit_and_preserves_sources(settings, tmp
     )
     file_path = export_path(job)
     # The export writer is the implementation's file-writing path, not a test secret fixture.
-    with patch("apps.core.management.commands.cleanup_exports.export_path") as candidate:
+    with patch("apps.core.management.commands.cleanup_exports.delete_export") as candidate:
         call_command("cleanup_exports", stdout=StringIO())
         candidate.assert_not_called()
         call_command("cleanup_exports", apply=True, stdout=StringIO())
-        candidate.return_value.unlink.assert_called_once_with(missing_ok=True)
+        candidate.assert_called_once()
     job.refresh_from_db()
     assert job.status == "expired" and UsageExport.objects.count() == 1
     assert file_path.parent == tmp_path.resolve()

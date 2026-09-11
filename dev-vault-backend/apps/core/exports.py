@@ -1,7 +1,6 @@
-"""Bounded local export storage. Domain modules supply authorized rows and headers."""
+"""Bounded export creation. Domain modules supply authorized rows and headers."""
 
 import csv
-import os
 import tempfile
 from pathlib import Path
 
@@ -9,13 +8,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-
-def export_path(job):
-    root = Path(settings.EXPORT_ROOT).resolve()
-    candidate = root / f"{job._meta.label_lower}-{job.id}.csv"
-    if candidate.parent != root or candidate.is_symlink():
-        raise ValueError("Invalid export path")
-    return candidate
+from apps.core.export_storage import export_path, upload_export  # noqa: F401
 
 
 def csv_cell(value):
@@ -31,15 +24,15 @@ def process_export(model, job_id, headers, rows_for):
     job = model.objects.select_for_update().filter(pk=job_id).first()
     if job is None or job.status != "queued" or job.expires_at <= timezone.now():
         return False
-    path = export_path(job)
+    directory = Path(settings.EXPORT_ROOT).resolve()
     temporary = None
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
+        directory.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
             mode="w",
             encoding="utf-8-sig",
             newline="",
-            dir=path.parent,
+            dir=directory,
             prefix=f"{job.id}-",
             suffix=".tmp",
             delete=False,
@@ -53,13 +46,15 @@ def process_export(model, job_id, headers, rows_for):
                     job.status, job.failure_code = "failed", "export_row_limit"
                     break
                 writer.writerow([csv_cell(value) for value in row])
+                if stream.tell() > settings.EXPORT_MAX_BYTES:
+                    job.status, job.failure_code = "failed", "export_byte_limit"
+                    break
             else:
                 job.status, job.row_count = "ready", count
         if job.status == "ready":
-            os.replace(temporary, path)
-            temporary = None
+            upload_export(job, temporary)
         job.save(update_fields=("status", "row_count", "failure_code", "updated_at"))
-    except OSError:
+    except (OSError, ValueError):
         job.status, job.failure_code = "failed", "export_storage_unavailable"
         job.save(update_fields=("status", "failure_code", "updated_at"))
     finally:
